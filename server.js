@@ -9,6 +9,51 @@ const app = new Koa();
 const server = http.createServer(app.callback());
 const wsServer = new WS.Server({ server })
 const usersId = [];
+
+function getAllUserNames() {
+  const names = []
+  wsServer.clients.forEach(function each(client) {
+    if (client.readyState === WS.OPEN && client.name) {
+      names.push(client.name);
+    }
+  });
+  return names;
+}
+
+function broadcast(message) {
+  wsServer.clients.forEach(function each(client) {
+    if (client.readyState === WS.OPEN) {
+      client.send(JSON.stringify(message));
+    }
+  });
+}
+
+function error(err) {
+  const errorObj = {
+    type: 'error',
+    message: err
+  }
+  ws.send(JSON.stringify(errorObj))
+}
+
+function createID(array) {
+  let newId = Math.round(Math.random() * 100000)
+  let checkId = array.some(element => element === newId)
+  while (checkId) {
+    newId = Math.round(Math.random() * 100000);
+    checkId = array.some(element => element === newId);
+  }
+  array.push(newId)
+  return newId;
+}
+
+function deleteID(id, array) {
+  const idx = array.findIndex((element) => Number(element) === Number(id))
+  if (idx !== -1) {
+    array.splice(idx,1)
+  }
+}
+
 wsServer.on('connection', (ws, req) => {
   const errCallback = (err) => {
     if (err) {
@@ -74,50 +119,6 @@ app.use(async ctx => {
   ctx.response.status = 404;
   return
 });
-
-function getAllUserNames() {
-  const names = []
-  wsServer.clients.forEach(function each(client) {
-    if (client.readyState === WS.OPEN && client.name) {
-      names.push(client.name);
-    }
-  });
-  return names;
-}
-
-function broadcast(message) {
-  wsServer.clients.forEach(function each(client) {
-    if (client.readyState === WS.OPEN) {
-      client.send(JSON.stringify(message));
-    }
-  });
-}
-
-function error(err) {
-  const errorObj = {
-    type: 'error',
-    message: err
-  }
-  ws.send(JSON.stringify(errorObj))
-}
-
-function createID(array) {
-  let newId = Math.round(Math.random() * 100000)
-  let checkId = array.some(element => element === newId)
-  while (checkId) {
-    newId = Math.round(Math.random() * 100000);
-    checkId = array.some(element => element === newId);
-  }
-  array.push(newId)
-  return newId;
-}
-
-function deleteID(id, array) {
-  const idx = array.findIndex((element) => Number(element) === Number(id))
-  if (idx !== -1) {
-    array.splice(idx,1)
-  }
-}
 
 const port = process.env.PORT || 7070;
 server.listen(port);
